@@ -7,5 +7,10 @@ module.exports = {
   resolver: {
     ...config.resolver,
     sourceExts: [...config.resolver.sourceExts, 'mjs', 'cjs'],
+    platforms: ['ios', 'android', 'native', 'web'],
+  },
+  transformer: {
+    ...config.transformer,
+    assetPlugins: ['expo-asset/tools/hashAssetFiles'],
   },
 }; 

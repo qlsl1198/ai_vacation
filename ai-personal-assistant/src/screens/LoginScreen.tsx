@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,74 +16,47 @@ import {
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../auth/AuthContext';
-import { SocialAuthService } from '../auth/SocialAuthService';
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const { login } = useAuth();
+  const { loginWithGoogle, loginWithKakao, loginWithTest, login } = useAuth();
   
   const [isLoading, setIsLoading] = useState(false);
-  const [oauthStatus, setOauthStatus] = useState({ google: false, kakao: false });
-
-  useEffect(() => {
-    // OAuth 설정 상태 확인
-    const status = SocialAuthService.getOAuthStatus();
-    setOauthStatus(status);
-  }, []);
 
   const handleGoogleLogin = async () => {
-    if (!oauthStatus.google) {
-      Alert.alert('OAuth 미설정', 'Google OAuth가 설정되지 않았습니다. 개발자에게 문의하세요.');
-      return;
-    }
-
     setIsLoading(true);
     try {
-      let result;
-      if (Platform.OS === 'web') {
-        // 웹에서는 시뮬레이션 사용
-        result = await SocialAuthService.simulateSocialLogin('google');
-      } else {
-        result = await SocialAuthService.signInWithGoogle();
-      }
-
-      if (result.success && result.user) {
-        await login(result.user);
-        Alert.alert('성공', 'Google OAuth 로그인되었습니다!');
-      } else {
-        Alert.alert('오류', result.error || 'Google OAuth 로그인에 실패했습니다.');
-      }
+      await loginWithGoogle();
+      Alert.alert('성공', 'Google OAuth 로그인되었습니다!');
     } catch (error) {
-      Alert.alert('오류', 'Google OAuth 로그인 중 오류가 발생했습니다.');
+      console.error('Google 로그인 오류:', error);
+      Alert.alert('오류', 'Google 로그인에 실패했습니다. 개발자 모드에서 테스트 로그인을 사용해보세요.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleKakaoLogin = async () => {
-    if (!oauthStatus.kakao) {
-      Alert.alert('OAuth 미설정', 'Kakao OAuth가 설정되지 않았습니다. 개발자에게 문의하세요.');
-      return;
-    }
-
     setIsLoading(true);
     try {
-      let result;
-      if (Platform.OS === 'web') {
-        // 웹에서는 시뮬레이션 사용
-        result = await SocialAuthService.simulateSocialLogin('kakao');
-      } else {
-        result = await SocialAuthService.signInWithKakao();
-      }
-
-      if (result.success && result.user) {
-        await login(result.user);
-        Alert.alert('성공', 'Kakao OAuth 로그인되었습니다!');
-      } else {
-        Alert.alert('오류', result.error || 'Kakao OAuth 로그인에 실패했습니다.');
-      }
+      await loginWithKakao();
+      Alert.alert('성공', 'Kakao OAuth 로그인되었습니다!');
     } catch (error) {
-      Alert.alert('오류', 'Kakao OAuth 로그인 중 오류가 발생했습니다.');
+      console.error('Kakao 로그인 오류:', error);
+      Alert.alert('오류', 'Kakao 로그인에 실패했습니다. 개발자 모드에서 테스트 로그인을 사용해보세요.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTestLogin = async (provider: 'google' | 'kakao') => {
+    setIsLoading(true);
+    try {
+      await loginWithTest(provider);
+      Alert.alert('성공', `${provider === 'google' ? 'Google' : 'Kakao'} 테스트 로그인되었습니다!`);
+    } catch (error) {
+      console.error('테스트 로그인 오류:', error);
+      Alert.alert('오류', '테스트 로그인에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -150,16 +123,16 @@ export default function LoginScreen() {
               style={[
                 styles.socialButton, 
                 { 
-                  borderColor: oauthStatus.google ? '#4285F4' : theme.colors.outline,
-                  opacity: oauthStatus.google ? 1 : 0.5
+                  borderColor: '#4285F4',
+                  opacity: isLoading ? 0.5 : 1
                 }
               ]}
-              textColor={oauthStatus.google ? '#4285F4' : theme.colors.onSurfaceVariant}
+              textColor="#4285F4"
               icon="logo-google"
               loading={isLoading}
-              disabled={isLoading || !oauthStatus.google}
+              disabled={isLoading}
             >
-              {oauthStatus.google ? 'Google OAuth로 계속하기' : 'Google OAuth 미설정'}
+              Google OAuth로 계속하기
             </Button>
 
             {/* Kakao OAuth 로그인 */}
@@ -169,17 +142,17 @@ export default function LoginScreen() {
               style={[
                 styles.socialButton, 
                 { 
-                  borderColor: oauthStatus.kakao ? '#FEE500' : theme.colors.outline,
-                  backgroundColor: oauthStatus.kakao ? '#FEE500' : 'transparent',
-                  opacity: oauthStatus.kakao ? 1 : 0.5
+                  borderColor: '#FEE500',
+                  backgroundColor: '#FEE500',
+                  opacity: isLoading ? 0.5 : 1
                 }
               ]}
-              textColor={oauthStatus.kakao ? '#000000' : theme.colors.onSurfaceVariant}
+              textColor="#000000"
               icon="logo-google"
               loading={isLoading}
-              disabled={isLoading || !oauthStatus.kakao}
+              disabled={isLoading}
             >
-              {oauthStatus.kakao ? 'Kakao OAuth로 계속하기' : 'Kakao OAuth 미설정'}
+              Kakao OAuth로 계속하기
             </Button>
 
             <Divider style={styles.divider} />
@@ -190,7 +163,7 @@ export default function LoginScreen() {
               onPress={handleGuestLogin}
               style={styles.guestButton}
               loading={isLoading}
-              disabled={isLoading}
+              disabled={false}
             >
               게스트로 시작하기
             </Button>
@@ -207,7 +180,8 @@ export default function LoginScreen() {
               • OAuth 2.0 표준을 통한 안전한 인증{'\n'}
               • 개인정보는 소셜 플랫폼에서만 관리{'\n'}
               • 앱에서는 민감한 정보를 저장하지 않음{'\n'}
-              • 이메일/비밀번호 로그인은 지원하지 않음
+              • 이메일/비밀번호 로그인은 지원하지 않음{'\n'}
+              • 개발자 테스트 로그인으로 기능 확인 가능
             </Paragraph>
           </Card.Content>
         </Card>
@@ -276,9 +250,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
+  testTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
   socialButton: {
     marginBottom: 12,
     paddingVertical: 8,
+  },
+  testButton: {
+    marginBottom: 8,
+    paddingVertical: 6,
   },
   guestButton: {
     marginTop: 8,

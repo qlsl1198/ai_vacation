@@ -4,7 +4,10 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
+import { DatabaseProvider } from './src/contexts/DatabaseContext';
 import { apiService } from './src/services/api';
+import { settingsService } from './src/services/settings';
+import { notificationService } from './src/services/notificationService';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -26,22 +29,70 @@ const screens = [
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState(0);
+  const [currentLanguage, setCurrentLanguage] = useState('ko');
   const { theme } = useTheme();
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const ActiveScreen = screens[activeTab].component;
 
+  // 언어별 탭 이름
+  const getTabNames = (language: string) => {
+    if (language === 'ko') {
+      return ['홈', '채팅', '음성', '카메라', '설정'];
+    } else {
+      return ['Home', 'Chat', 'Voice', 'Camera', 'Settings'];
+    }
+  };
+
   useEffect(() => {
-    // 앱 시작 시 API 서비스 초기화
+    // 앱 시작 시 서비스들 초기화
     const initializeApp = async () => {
       try {
+        // API 서비스 초기화
         await apiService.initialize();
+        
+        // 설정 서비스 초기화
+        await settingsService.initialize();
+        
+        // 언어 설정 로드
+        const settings = await settingsService.getSettings();
+        setCurrentLanguage(settings.language);
+        
+        // 알림 서비스 초기화 (알림이 활성화된 경우에만)
+        const notificationsEnabled = settingsService.getSetting('notifications');
+        if (notificationsEnabled) {
+          try {
+            await notificationService.initialize();
+          } catch (error) {
+            console.log('알림 서비스 초기화 실패 (권한 없음):', error);
+          }
+        }
       } catch (error) {
-        console.error('API Service initialization error:', error);
+        console.error('앱 초기화 오류:', error);
       }
     };
     
     initializeApp();
   }, []);
+
+  // 설정 변경 감지를 위한 이벤트 리스너
+  useEffect(() => {
+    const checkSettings = async () => {
+      try {
+        const settings = await settingsService.getSettings();
+        if (settings.language !== currentLanguage) {
+          setCurrentLanguage(settings.language);
+        }
+      } catch (error) {
+        console.error('설정 확인 실패:', error);
+      }
+    };
+
+    // 주기적으로 설정 확인 (더 나은 방법은 이벤트 시스템을 구현하는 것)
+    const interval = setInterval(checkSettings, 1000);
+    return () => clearInterval(interval);
+  }, [currentLanguage]);
+
+  const tabNames = getTabNames(currentLanguage);
 
   // 로딩 중이거나 인증되지 않은 경우 로그인 화면 표시
   if (isLoading) {
@@ -52,7 +103,7 @@ function AppContent() {
           <View style={styles.loadingContainer}>
             <Ionicons name="refresh" size={Math.min(width * 0.1, 40)} color={theme.colors.primary} />
             <Text style={[styles.loadingText, { color: theme.colors.onSurface }]}>
-              로딩 중...
+              {currentLanguage === 'ko' ? '로딩 중...' : 'Loading...'}
             </Text>
           </View>
         </SafeAreaView>
@@ -116,7 +167,7 @@ function AppContent() {
                   { color: activeTab === index ? theme.colors.primary : theme.colors.onSurface }
                 ]}
               >
-                {screen.name}
+                {tabNames[index]}
               </Text>
             </TouchableOpacity>
           ))}
@@ -130,7 +181,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <DatabaseProvider>
+          <AppContent />
+        </DatabaseProvider>
       </AuthProvider>
     </ThemeProvider>
   );

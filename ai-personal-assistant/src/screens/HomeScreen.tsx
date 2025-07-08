@@ -25,7 +25,10 @@ import { Ionicons } from '@expo/vector-icons';
 import VoiceRecorder from '../components/VoiceRecorder';
 import ImageAnalyzer from '../components/ImageAnalyzer';
 import UserGuide from '../components/UserGuide';
+import DatabaseTest from '../components/DatabaseTest';
 import { userStorage } from '../services/storage';
+import { useAuth } from '../auth/AuthContext';
+import { settingsService } from '../services/settings';
 import * as Notifications from 'expo-notifications';
 
 const { width, height } = Dimensions.get('window');
@@ -48,19 +51,26 @@ interface Task {
 
 const HomeScreen: React.FC = () => {
   const theme = useTheme();
+  const { user } = useAuth();
+  
+  // 개발자 로그인 여부 확인
+  const isDeveloper = user?.email === 'developer@test.com' || user?.email === 'admin@test.com';
+  
+  const [currentLanguage, setCurrentLanguage] = useState('ko');
+  
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: '1',
-      title: '회의 준비',
-      description: '오후 2시 팀 미팅 자료 준비',
+      title: currentLanguage === 'ko' ? '회의 준비' : 'Meeting Preparation',
+      description: currentLanguage === 'ko' ? '오후 2시 팀 미팅 자료 준비' : 'Prepare materials for 2 PM team meeting',
       completed: false,
       priority: 'high',
       dueDate: new Date(Date.now() + 3600000),
     },
     {
       id: '2',
-      title: '운동하기',
-      description: '30분 조깅',
+      title: currentLanguage === 'ko' ? '운동하기' : 'Exercise',
+      description: currentLanguage === 'ko' ? '30분 조깅' : '30 minutes jogging',
       completed: true,
       priority: 'medium',
       dueDate: new Date(Date.now() + 7200000),
@@ -77,6 +87,7 @@ const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     checkFirstLogin();
+    loadSettings();
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -91,6 +102,53 @@ const HomeScreen: React.FC = () => {
       }),
     ]).start();
   }, []);
+
+  // 설정 변경 감지
+  useEffect(() => {
+    const checkSettings = async () => {
+      try {
+        const settings = await settingsService.getSettings();
+        if (settings.language !== currentLanguage) {
+          setCurrentLanguage(settings.language);
+          updateTasksLanguage(settings.language);
+        }
+      } catch (error) {
+        console.error('설정 확인 실패:', error);
+      }
+    };
+
+    const interval = setInterval(checkSettings, 1000);
+    return () => clearInterval(interval);
+  }, [currentLanguage]);
+
+  const loadSettings = async () => {
+    try {
+      const settings = await settingsService.getSettings();
+      setCurrentLanguage(settings.language);
+      updateTasksLanguage(settings.language);
+    } catch (error) {
+      console.error('설정 로드 실패:', error);
+    }
+  };
+
+  const updateTasksLanguage = (language: string) => {
+    setTasks(prev => prev.map(task => {
+      if (task.id === '1') {
+        return {
+          ...task,
+          title: language === 'ko' ? '회의 준비' : 'Meeting Preparation',
+          description: language === 'ko' ? '오후 2시 팀 미팅 자료 준비' : 'Prepare materials for 2 PM team meeting',
+        };
+      } else if (task.id === '2') {
+        return {
+          ...task,
+          title: language === 'ko' ? '운동하기' : 'Exercise',
+          description: language === 'ko' ? '30분 조깅' : '30 minutes jogging',
+        };
+      }
+      return task;
+    }));
+  };
 
   const checkFirstLogin = async () => {
     try {
@@ -174,7 +232,7 @@ const HomeScreen: React.FC = () => {
               style={styles.backButton}
               labelStyle={styles.backButtonText}
             >
-              뒤로 가기
+              {currentLanguage === 'ko' ? '뒤로 가기' : 'Back'}
             </Button>
             <VoiceRecorder
               onResult={(text) => {
@@ -195,9 +253,24 @@ const HomeScreen: React.FC = () => {
               style={styles.backButton}
               labelStyle={styles.backButtonText}
             >
-              뒤로 가기
+              {currentLanguage === 'ko' ? '뒤로 가기' : 'Back'}
             </Button>
             <ImageAnalyzer />
+          </View>
+        );
+      case 'database':
+        return (
+          <View style={[styles.featureContainer, { backgroundColor: theme.colors.background }]}>
+            <Button
+              mode="text"
+              onPress={handleBackPress}
+              icon="arrow-left"
+              style={styles.backButton}
+              labelStyle={styles.backButtonText}
+            >
+              {currentLanguage === 'ko' ? '뒤로 가기' : 'Back'}
+            </Button>
+            <DatabaseTest />
           </View>
         );
       default:
@@ -239,9 +312,13 @@ const HomeScreen: React.FC = () => {
           {/* AI 비서 환영 메시지 */}
           <Card style={[styles.welcomeCard, { backgroundColor: theme.colors.surface }]}>
             <Card.Content style={styles.cardContent}>
-              <Title style={[styles.welcomeTitle, { color: theme.colors.onSurface }]}>안녕하세요! 👋</Title>
+              <Title style={[styles.welcomeTitle, { color: theme.colors.onSurface }]}>
+                {currentLanguage === 'ko' ? '안녕하세요! 👋' : 'Hello! 👋'}
+              </Title>
               <Paragraph style={[styles.welcomeParagraph, { color: theme.colors.onSurfaceVariant }]}>
-                오늘도 AI 비서가 도와드릴게요. 무엇을 도와드릴까요?
+                {currentLanguage === 'ko' 
+                  ? '오늘도 AI 비서가 도와드릴게요. 무엇을 도와드릴까요?' 
+                  : 'Your AI assistant is here to help today. What can I do for you?'}
               </Paragraph>
             </Card.Content>
           </Card>
@@ -249,7 +326,9 @@ const HomeScreen: React.FC = () => {
           {/* 오늘의 통계 */}
           <Card style={[styles.statsCard, { backgroundColor: theme.colors.surface }]}>
             <Card.Content style={styles.cardContent}>
-              <Title style={[styles.statsTitle, { color: theme.colors.onSurface }]}>오늘의 진행상황</Title>
+              <Title style={[styles.statsTitle, { color: theme.colors.onSurface }]}>
+                {currentLanguage === 'ko' ? '오늘의 진행상황' : 'Today\'s Progress'}
+              </Title>
               <View style={[styles.progressBar, { backgroundColor: theme.colors.outline }]}>
                 <Animated.View 
                   style={[
@@ -264,15 +343,21 @@ const HomeScreen: React.FC = () => {
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Title style={[styles.statNumber, { color: theme.colors.onSurface }]}>{completedTasks}</Title>
-                  <Paragraph style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>완료된 작업</Paragraph>
+                  <Paragraph style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    {currentLanguage === 'ko' ? '완료된 작업' : 'Completed'}
+                  </Paragraph>
                 </View>
                 <View style={styles.statItem}>
                   <Title style={[styles.statNumber, { color: theme.colors.onSurface }]}>{totalTasks - completedTasks}</Title>
-                  <Paragraph style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>남은 작업</Paragraph>
+                  <Paragraph style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    {currentLanguage === 'ko' ? '남은 작업' : 'Remaining'}
+                  </Paragraph>
                 </View>
                 <View style={styles.statItem}>
                   <Title style={[styles.statNumber, { color: theme.colors.onSurface }]}>{Math.round(progress)}%</Title>
-                  <Paragraph style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>진행률</Paragraph>
+                  <Paragraph style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    {currentLanguage === 'ko' ? '진행률' : 'Progress'}
+                  </Paragraph>
                 </View>
               </View>
             </Card.Content>
@@ -281,7 +366,9 @@ const HomeScreen: React.FC = () => {
           {/* 빠른 액션 */}
           <Card style={[styles.quickActionsCard, { backgroundColor: theme.colors.surface }]}>
             <Card.Content style={styles.cardContent}>
-              <Title style={[styles.actionTitle, { color: theme.colors.onSurface }]}>빠른 액션</Title>
+              <Title style={[styles.actionTitle, { color: theme.colors.onSurface }]}>
+                {currentLanguage === 'ko' ? '빠른 액션' : 'Quick Actions'}
+              </Title>
               <View style={styles.quickActions}>
                 <Button
                   mode="contained"
@@ -290,7 +377,7 @@ const HomeScreen: React.FC = () => {
                   icon="microphone"
                   labelStyle={styles.quickActionButtonText}
                 >
-                  음성 메모
+                  {currentLanguage === 'ko' ? '음성 메모' : 'Voice Memo'}
                 </Button>
                 <Button
                   mode="contained"
@@ -299,8 +386,20 @@ const HomeScreen: React.FC = () => {
                   icon="camera"
                   labelStyle={styles.quickActionButtonText}
                 >
-                  이미지 분석
+                  {currentLanguage === 'ko' ? '이미지 분석' : 'Image Analysis'}
                 </Button>
+                {/* 개발자 로그인일 때만 데이터베이스 테스트 버튼 표시 */}
+                {isDeveloper && (
+                  <Button
+                    mode="contained"
+                    onPress={() => handleFeaturePress('database')}
+                    style={[styles.quickActionButton, { backgroundColor: '#FF9500' }]}
+                    icon="database"
+                    labelStyle={styles.quickActionButtonText}
+                  >
+                    {currentLanguage === 'ko' ? '데이터베이스 테스트' : 'Database Test'}
+                  </Button>
+                )}
               </View>
             </Card.Content>
           </Card>
@@ -308,7 +407,9 @@ const HomeScreen: React.FC = () => {
           {/* 작업 목록 */}
           <Card style={[styles.tasksCard, { backgroundColor: theme.colors.surface }]}>
             <Card.Content style={styles.cardContent}>
-              <Title style={[styles.tasksTitle, { color: theme.colors.onSurface }]}>오늘의 작업</Title>
+              <Title style={[styles.tasksTitle, { color: theme.colors.onSurface }]}>
+                {currentLanguage === 'ko' ? '오늘의 작업' : 'Today\'s Tasks'}
+              </Title>
               {tasks.map((task) => (
                 <Animated.View
                   key={task.id}
@@ -383,9 +484,11 @@ const HomeScreen: React.FC = () => {
           onDismiss={hideModal}
           contentContainerStyle={[styles.modalContent, { backgroundColor: theme.colors.surface }]}
         >
-          <Title style={[styles.modalTitle, { color: theme.colors.onSurface }]}>새 작업 추가</Title>
+          <Title style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
+            {currentLanguage === 'ko' ? '새 작업 추가' : 'Add New Task'}
+          </Title>
           <TextInput
-            label="제목"
+            label={currentLanguage === 'ko' ? '제목' : 'Title'}
             value={newTaskTitle}
             onChangeText={setNewTaskTitle}
             style={styles.input}
@@ -393,7 +496,7 @@ const HomeScreen: React.FC = () => {
             dense
           />
           <TextInput
-            label="설명"
+            label={currentLanguage === 'ko' ? '설명' : 'Description'}
             value={newTaskDescription}
             onChangeText={setNewTaskDescription}
             style={styles.input}
@@ -404,7 +507,7 @@ const HomeScreen: React.FC = () => {
           />
           <View style={styles.modalButtons}>
             <Button onPress={hideModal} style={styles.modalButton} labelStyle={styles.modalButtonText}>
-              취소
+              {currentLanguage === 'ko' ? '취소' : 'Cancel'}
             </Button>
             <Button
               mode="contained"
@@ -413,7 +516,7 @@ const HomeScreen: React.FC = () => {
               disabled={!newTaskTitle.trim()}
               labelStyle={styles.modalButtonText}
             >
-              추가
+              {currentLanguage === 'ko' ? '추가' : 'Add'}
             </Button>
           </View>
         </Modal>
@@ -425,8 +528,10 @@ const HomeScreen: React.FC = () => {
   const sendTestNotification = async () => {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '테스트 알림',
-        body: '이것은 푸시/로컬 알림 테스트입니다.',
+        title: currentLanguage === 'ko' ? '테스트 알림' : 'Test Notification',
+        body: currentLanguage === 'ko' 
+          ? '이것은 푸시/로컬 알림 테스트입니다.' 
+          : 'This is a push/local notification test.',
       },
       trigger: null, // 즉시 발송
     });
@@ -442,7 +547,7 @@ const HomeScreen: React.FC = () => {
       />
       {/* 알림 테스트용 버튼 (개발용) */}
       <Button mode="contained" onPress={sendTestNotification} style={{margin: 16}}>
-        알림 테스트
+        {currentLanguage === 'ko' ? '알림 테스트' : 'Test Notification'}
       </Button>
     </View>
   );

@@ -44,7 +44,7 @@ class ImageAnalysisService {
       const systemPrompt = `당신은 이미지 분석 결과를 개선하는 전문가입니다. 
 주어진 분석 결과를 더 자세하고 유용한 정보로 개선해주세요.
 한국어로 응답하고, 사용자가 이미지에 대해 더 잘 이해할 수 있도록 도와주세요.`;
-
+      
       const response = await apiService.sendTextMessage(
         `다음 이미지 분석 결과를 개선해주세요: "${analysis}"`,
         systemPrompt

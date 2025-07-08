@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import VoiceService from '../services/VoiceService';
+
+const { width, height } = Dimensions.get('window');
 
 interface VoiceRecorderProps {
   onResult: (text: string) => void;
@@ -63,14 +65,16 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onResult }) => {
         {isRecording ? (
           <ActivityIndicator color="white" />
         ) : (
-          <Ionicons name="mic" size={24} color="white" />
+          <Ionicons name="mic" size={Math.min(width * 0.08, 32)} color="white" />
         )}
       </TouchableOpacity>
-      <Text style={styles.text}>
+      <Text style={[styles.text, { color: theme.colors.onSurface }]}>
         {isRecording ? '음성 인식 중...' : '마이크를 눌러 음성 인식 시작'}
       </Text>
       {results.length > 0 && (
-        <Text style={styles.result}>{results[0]}</Text>
+        <Text style={[styles.result, { color: theme.colors.onSurfaceVariant }]}>
+          {results[0]}
+        </Text>
       )}
     </View>
   );
@@ -79,12 +83,13 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onResult }) => {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    padding: 16,
+    padding: Math.min(width * 0.04, 16),
+    width: '100%',
   },
   button: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: Math.min(width * 0.2, 80),
+    height: Math.min(width * 0.2, 80),
+    borderRadius: Math.min(width * 0.1, 40),
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
@@ -95,20 +100,23 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    marginBottom: Math.min(height * 0.02, 16),
   },
   recording: {
     transform: [{ scale: 1.1 }],
   },
   text: {
-    marginTop: 16,
-    fontSize: 16,
+    marginTop: Math.min(height * 0.01, 8),
+    fontSize: Math.min(width * 0.04, 16),
     textAlign: 'center',
+    fontWeight: '500',
   },
   result: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#666',
+    marginTop: Math.min(height * 0.01, 8),
+    fontSize: Math.min(width * 0.035, 14),
     textAlign: 'center',
+    fontStyle: 'italic',
+    paddingHorizontal: Math.min(width * 0.04, 16),
   },
 });
 

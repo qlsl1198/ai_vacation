@@ -24,6 +24,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import ImageAnalyzer from '../components/ImageAnalyzer';
 import { apiService } from '../services/api';
+import { settingsService } from '../services/settings';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,6 +39,7 @@ interface AnalyzedImage {
 
 export default function CameraScreen() {
   const theme = useTheme();
+  const [currentLanguage, setCurrentLanguage] = useState('ko');
   const [analyzedImages, setAnalyzedImages] = useState<AnalyzedImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<AnalyzedImage | null>(null);
   const [visible, setVisible] = useState(false);
@@ -45,8 +47,43 @@ export default function CameraScreen() {
   const [showImageAnalyzer, setShowImageAnalyzer] = useState(false);
 
   useEffect(() => {
-    checkApiKeyStatus();
+    initializeScreen();
   }, []);
+
+  // 설정 변경 감지
+  useEffect(() => {
+    const checkSettings = async () => {
+      try {
+        const settings = await settingsService.getSettings();
+        if (settings.language !== currentLanguage) {
+          setCurrentLanguage(settings.language);
+        }
+      } catch (error) {
+        console.error('설정 확인 실패:', error);
+      }
+    };
+
+    const interval = setInterval(checkSettings, 1000);
+    return () => clearInterval(interval);
+  }, [currentLanguage]);
+
+  const initializeScreen = async () => {
+    try {
+      await checkApiKeyStatus();
+      await loadSettings();
+    } catch (error) {
+      console.error('카메라 화면 초기화 실패:', error);
+    }
+  };
+
+  const loadSettings = async () => {
+    try {
+      const settings = await settingsService.getSettings();
+      setCurrentLanguage(settings.language);
+    } catch (error) {
+      console.error('설정 로드 실패:', error);
+    }
+  };
 
   const checkApiKeyStatus = async () => {
     await apiService.initialize();
@@ -56,7 +93,10 @@ export default function CameraScreen() {
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+      Alert.alert(
+        currentLanguage === 'ko' ? '권한 필요' : 'Permission Required',
+        currentLanguage === 'ko' ? '갤러리 접근 권한이 필요합니다.' : 'Gallery access permission is required.'
+      );
       return false;
     }
     return true;
@@ -65,14 +105,19 @@ export default function CameraScreen() {
   const takePhoto = async () => {
     if (!isApiKeySet) {
       Alert.alert(
-        'API 키 필요',
-        '이미지 분석 기능을 사용하려면 설정에서 OpenAI API 키를 입력해주세요.',
+        currentLanguage === 'ko' ? 'API 키 필요' : 'API Key Required',
+        currentLanguage === 'ko' 
+          ? '이미지 분석 기능을 사용하려면 설정에서 OpenAI API 키를 입력해주세요.'
+          : 'Please enter your OpenAI API key in settings to use image analysis features.',
         [
-          { text: '취소', style: 'cancel' },
-          { text: '설정으로 이동', onPress: () => {
-            // 설정 탭으로 이동하는 로직 (추후 구현)
-            console.log('설정으로 이동');
-          }}
+          { text: currentLanguage === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
+          { 
+            text: currentLanguage === 'ko' ? '설정으로 이동' : 'Go to Settings', 
+            onPress: () => {
+              // 설정 탭으로 이동하는 로직 (추후 구현)
+              console.log('설정으로 이동');
+            }
+          }
         ]
       );
       return;
@@ -80,7 +125,10 @@ export default function CameraScreen() {
 
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('권한 필요', '카메라 권한이 필요합니다.');
+      Alert.alert(
+        currentLanguage === 'ko' ? '권한 필요' : 'Permission Required',
+        currentLanguage === 'ko' ? '카메라 권한이 필요합니다.' : 'Camera permission is required.'
+      );
       return;
     }
 
@@ -90,14 +138,19 @@ export default function CameraScreen() {
   const pickImage = async () => {
     if (!isApiKeySet) {
       Alert.alert(
-        'API 키 필요',
-        '이미지 분석 기능을 사용하려면 설정에서 OpenAI API 키를 입력해주세요.',
+        currentLanguage === 'ko' ? 'API 키 필요' : 'API Key Required',
+        currentLanguage === 'ko' 
+          ? '이미지 분석 기능을 사용하려면 설정에서 OpenAI API 키를 입력해주세요.'
+          : 'Please enter your OpenAI API key in settings to use image analysis features.',
         [
-          { text: '취소', style: 'cancel' },
-          { text: '설정으로 이동', onPress: () => {
-            // 설정 탭으로 이동하는 로직 (추후 구현)
-            console.log('설정으로 이동');
-          }}
+          { text: currentLanguage === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
+          { 
+            text: currentLanguage === 'ko' ? '설정으로 이동' : 'Go to Settings', 
+            onPress: () => {
+              // 설정 탭으로 이동하는 로직 (추후 구현)
+              console.log('설정으로 이동');
+            }
+          }
         ]
       );
       return;
@@ -112,19 +165,22 @@ export default function CameraScreen() {
   const handleAnalysisComplete = (imageUri: string, analysis: string) => {
     // 분석 결과를 카테고리로 분류
     const category = determineCategory(analysis);
-    
-    const newAnalyzedImage: AnalyzedImage = {
-      id: Date.now().toString(),
+
+      const newAnalyzedImage: AnalyzedImage = {
+        id: Date.now().toString(),
       uri: imageUri,
       analysis: analysis,
-      timestamp: new Date(),
+        timestamp: new Date(),
       category,
       confidence: 0.9, // API 응답이므로 높은 신뢰도
-    };
+      };
 
-    setAnalyzedImages(prev => [newAnalyzedImage, ...prev]);
+      setAnalyzedImages(prev => [newAnalyzedImage, ...prev]);
     setShowImageAnalyzer(false);
-    Alert.alert('분석 완료', '이미지 분석이 완료되었습니다.');
+      Alert.alert(
+        currentLanguage === 'ko' ? '분석 완료' : 'Analysis Complete',
+        currentLanguage === 'ko' ? '이미지 분석이 완료되었습니다.' : 'Image analysis has been completed.'
+      );
   };
 
   // 분석 결과를 기반으로 카테고리 결정
@@ -149,12 +205,12 @@ export default function CameraScreen() {
 
   const deleteImage = (id: string) => {
     Alert.alert(
-      '이미지 삭제',
-      '이 이미지를 삭제하시겠습니까?',
+      currentLanguage === 'ko' ? '이미지 삭제' : 'Delete Image',
+      currentLanguage === 'ko' ? '이 이미지를 삭제하시겠습니까?' : 'Are you sure you want to delete this image?',
       [
-        { text: '취소', style: 'cancel' },
+        { text: currentLanguage === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
         {
-          text: '삭제',
+          text: currentLanguage === 'ko' ? '삭제' : 'Delete',
           style: 'destructive',
           onPress: () => {
             setAnalyzedImages(prev => prev.filter(img => img.id !== id));
@@ -189,12 +245,22 @@ export default function CameraScreen() {
   };
 
   const getCategoryName = (category: string) => {
-    switch (category) {
-      case 'text': return '텍스트';
-      case 'object': return '객체';
-      case 'face': return '얼굴';
-      case 'document': return '문서';
-      default: return '이미지';
+    if (currentLanguage === 'ko') {
+      switch (category) {
+        case 'text': return '텍스트';
+        case 'object': return '객체';
+        case 'face': return '얼굴';
+        case 'document': return '문서';
+        default: return '이미지';
+      }
+    } else {
+      switch (category) {
+        case 'text': return 'Text';
+        case 'object': return 'Object';
+        case 'face': return 'Face';
+        case 'document': return 'Document';
+        default: return 'Image';
+      }
     }
   };
 
@@ -208,7 +274,7 @@ export default function CameraScreen() {
           style={styles.backButton}
           labelStyle={styles.backButtonText}
         >
-          뒤로 가기
+          {currentLanguage === 'ko' ? '뒤로 가기' : 'Back'}
         </Button>
         <ImageAnalyzer onAnalysisComplete={handleAnalysisComplete} />
       </View>
@@ -221,11 +287,19 @@ export default function CameraScreen() {
         {/* 카메라 액션 카드 */}
         <Card style={[styles.cameraCard, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
-            <Title style={[styles.cardTitle, { color: theme.colors.onSurface }]}>이미지 분석</Title>
+            <Title style={[styles.cardTitle, { color: theme.colors.onSurface }]}>
+              {currentLanguage === 'ko' ? '이미지 분석' : 'Image Analysis'}
+            </Title>
             <Paragraph style={[styles.cardDescription, { color: theme.colors.onSurfaceVariant }]}>
               {isApiKeySet 
-                ? '카메라로 사진을 촬영하거나 갤러리에서 이미지를 선택하여 AI로 분석해보세요.'
-                : '이미지 분석 기능을 사용하려면 설정에서 OpenAI API 키를 입력해주세요.'
+                ? (currentLanguage === 'ko' 
+                    ? '카메라로 사진을 촬영하거나 갤러리에서 이미지를 선택하여 AI로 분석해보세요.'
+                    : 'Take a photo with the camera or select an image from the gallery to analyze with AI.'
+                  )
+                : (currentLanguage === 'ko'
+                    ? '이미지 분석 기능을 사용하려면 설정에서 OpenAI API 키를 입력해주세요.'
+                    : 'Please enter your OpenAI API key in settings to use image analysis features.'
+                  )
               }
             </Paragraph>
             <View style={styles.cameraActions}>
@@ -236,7 +310,7 @@ export default function CameraScreen() {
                 icon="camera"
                 disabled={!isApiKeySet}
               >
-                사진 촬영
+                {currentLanguage === 'ko' ? '사진 촬영' : 'Take Photo'}
               </Button>
               <Button
                 mode="outlined"
@@ -245,12 +319,12 @@ export default function CameraScreen() {
                 icon="image"
                 disabled={!isApiKeySet}
               >
-                갤러리 선택
+                {currentLanguage === 'ko' ? '갤러리 선택' : 'Select from Gallery'}
               </Button>
             </View>
             {!isApiKeySet && (
               <Paragraph style={[styles.apiKeyNotice, { color: theme.colors.error }]}>
-                API 키가 설정되지 않았습니다
+                {currentLanguage === 'ko' ? 'API 키가 설정되지 않았습니다' : 'API key is not set'}
               </Paragraph>
             )}
           </Card.Content>
@@ -259,10 +333,15 @@ export default function CameraScreen() {
         {/* 분석된 이미지 목록 */}
         <Card style={[styles.imagesCard, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
-            <Title style={[styles.cardTitle, { color: theme.colors.onSurface }]}>분석된 이미지</Title>
+            <Title style={[styles.cardTitle, { color: theme.colors.onSurface }]}>
+              {currentLanguage === 'ko' ? '분석된 이미지' : 'Analyzed Images'}
+            </Title>
             {analyzedImages.length === 0 ? (
               <Paragraph style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
-                아직 분석된 이미지가 없습니다. 카메라 버튼을 눌러 첫 이미지를 분석해보세요!
+                {currentLanguage === 'ko' 
+                  ? '아직 분석된 이미지가 없습니다. 카메라 버튼을 눌러 첫 이미지를 분석해보세요!'
+                  : 'No analyzed images yet. Press the camera button to analyze your first image!'
+                }
               </Paragraph>
             ) : (
               analyzedImages.map((image) => (
@@ -286,14 +365,14 @@ export default function CameraScreen() {
                         {getCategoryName(image.category)}
                       </Chip>
                       <Paragraph style={[styles.confidenceText, { color: theme.colors.onSurfaceVariant }]}>
-                        {Math.round(image.confidence * 100)}% 정확도
+                        {Math.round(image.confidence * 100)}% {currentLanguage === 'ko' ? '정확도' : 'accuracy'}
                       </Paragraph>
                     </View>
                     <Paragraph numberOfLines={2} style={[styles.analysisText, { color: theme.colors.onSurface }]}>
                       {image.analysis}
                     </Paragraph>
                     <Paragraph style={[styles.timestampText, { color: theme.colors.onSurfaceVariant }]}>
-                      {image.timestamp.toLocaleString('ko-KR')}
+                      {image.timestamp.toLocaleString(currentLanguage === 'ko' ? 'ko-KR' : 'en-US')}
                     </Paragraph>
                   </Card.Content>
                 </Card>
@@ -335,7 +414,7 @@ export default function CameraScreen() {
                 resizeMode="contain"
               />
               <Title style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
-                {getCategoryName(selectedImage.category)} 분석 결과
+                {getCategoryName(selectedImage.category)} {currentLanguage === 'ko' ? '분석 결과' : 'Analysis Result'}
               </Title>
               <Paragraph style={[styles.modalAnalysis, { color: theme.colors.onSurface }]}>
                 {selectedImage.analysis}
@@ -353,11 +432,11 @@ export default function CameraScreen() {
                   {getCategoryName(selectedImage.category)}
                 </Chip>
                 <Paragraph style={[styles.modalConfidence, { color: theme.colors.onSurfaceVariant }]}>
-                  정확도: {Math.round(selectedImage.confidence * 100)}%
+                  {currentLanguage === 'ko' ? '정확도' : 'Accuracy'}: {Math.round(selectedImage.confidence * 100)}%
                 </Paragraph>
               </View>
               <Paragraph style={[styles.modalTimestamp, { color: theme.colors.onSurfaceVariant }]}>
-                분석 시간: {selectedImage.timestamp.toLocaleString('ko-KR')}
+                {currentLanguage === 'ko' ? '분석 시간' : 'Analysis Time'}: {selectedImage.timestamp.toLocaleString(currentLanguage === 'ko' ? 'ko-KR' : 'en-US')}
               </Paragraph>
               <View style={styles.modalButtons}>
                 <Button
@@ -366,7 +445,7 @@ export default function CameraScreen() {
                   style={styles.modalButton}
                   textColor={theme.colors.error}
                 >
-                  삭제
+                  {currentLanguage === 'ko' ? '삭제' : 'Delete'}
                 </Button>
                 <Button
                   mode="contained"
@@ -376,7 +455,7 @@ export default function CameraScreen() {
                   }}
                   style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}
                 >
-                  닫기
+                  {currentLanguage === 'ko' ? '닫기' : 'Close'}
                 </Button>
               </View>
             </ScrollView>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { oauthService, OAuthUser } from '../services/oauth';
 
 interface User {
   id: string;
@@ -14,6 +15,9 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (userData: User) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  loginWithKakao: () => Promise<void>;
+  loginWithTest: (provider: 'google' | 'kakao') => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
 }
@@ -67,8 +71,86 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async () => {
+    try {
+      setIsLoading(true);
+      const oauthUser = await oauthService.signInWithGoogle();
+      
+      if (oauthUser) {
+        const userData: User = {
+          id: oauthUser.id,
+          email: oauthUser.email,
+          name: oauthUser.name,
+          avatar: oauthUser.avatar,
+          provider: 'google',
+        };
+        
+        await login(userData);
+      } else {
+        throw new Error('Google 로그인이 취소되었습니다.');
+      }
+    } catch (error) {
+      console.error('Google 로그인 실패:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithKakao = async () => {
+    try {
+      setIsLoading(true);
+      const oauthUser = await oauthService.signInWithKakao();
+      
+      if (oauthUser) {
+        const userData: User = {
+          id: oauthUser.id,
+          email: oauthUser.email,
+          name: oauthUser.name,
+          avatar: oauthUser.avatar,
+          provider: 'kakao',
+        };
+        
+        await login(userData);
+      } else {
+        throw new Error('Kakao 로그인이 취소되었습니다.');
+      }
+    } catch (error) {
+      console.error('Kakao 로그인 실패:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithTest = async (provider: 'google' | 'kakao') => {
+    try {
+      setIsLoading(true);
+      const oauthUser = await oauthService.signInWithTest(provider);
+      
+      const userData: User = {
+        id: oauthUser.id,
+        email: oauthUser.email,
+        name: oauthUser.name,
+        avatar: oauthUser.avatar,
+        provider,
+      };
+      
+      await login(userData);
+    } catch (error) {
+      console.error('테스트 로그인 실패:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
+      if (user?.provider && user.provider !== 'guest') {
+        await oauthService.signOut(user.provider);
+      }
+      
       await AsyncStorage.removeItem('user');
       setUser(null);
     } catch (error) {
@@ -95,6 +177,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     isAuthenticated: !!user,
     login,
+    loginWithGoogle,
+    loginWithKakao,
+    loginWithTest,
     logout,
     updateUser,
   };
