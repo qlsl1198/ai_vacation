@@ -154,34 +154,56 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      settings.language === 'ko' ? '로그아웃' : 'Logout',
-      settings.language === 'ko' 
+    const confirmLogout = () => {
+      const message = settings.language === 'ko' 
         ? '정말로 로그아웃하시겠습니까? 모든 데이터는 유지됩니다.'
-        : 'Are you sure you want to logout? All data will be preserved.',
-      [
-        { text: settings.language === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
-        {
-          text: settings.language === 'ko' ? '로그아웃' : 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-              Alert.alert(
-                settings.language === 'ko' ? '완료' : 'Complete', 
-                settings.language === 'ko' ? '로그아웃되었습니다.' : 'You have been logged out.'
-              );
-            } catch (error) {
-              console.error('로그아웃 실패:', error);
-              Alert.alert(
-                '오류', 
-                settings.language === 'ko' ? '로그아웃 중 오류가 발생했습니다.' : 'An error occurred during logout.'
-              );
-            }
-          },
-        },
-      ]
-    );
+        : 'Are you sure you want to logout? All data will be preserved.';
+      
+      if (typeof window !== 'undefined' && window.confirm) {
+        if (window.confirm(message)) {
+          performLogout();
+        }
+      } else {
+        Alert.alert(
+          settings.language === 'ko' ? '로그아웃' : 'Logout',
+          message,
+          [
+            { text: settings.language === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
+            {
+              text: settings.language === 'ko' ? '로그아웃' : 'Logout',
+              style: 'destructive',
+              onPress: performLogout,
+            },
+          ]
+        );
+      }
+    };
+
+    const performLogout = async () => {
+      try {
+        await logout();
+        const successMessage = settings.language === 'ko' ? '로그아웃되었습니다.' : 'You have been logged out.';
+        
+        if (typeof window !== 'undefined' && window.alert) {
+          window.alert(successMessage);
+          // 웹 환경에서는 페이지 새로고침
+          window.location.reload();
+        } else {
+          Alert.alert(settings.language === 'ko' ? '완료' : 'Complete', successMessage);
+        }
+      } catch (error) {
+        console.error('로그아웃 실패:', error);
+        const errorMessage = settings.language === 'ko' ? '로그아웃 중 오류가 발생했습니다.' : 'An error occurred during logout.';
+        
+        if (typeof window !== 'undefined' && window.alert) {
+          window.alert('오류: ' + errorMessage);
+        } else {
+          Alert.alert('오류', errorMessage);
+        }
+      }
+    };
+
+    confirmLogout();
   };
 
   const saveApiKey = async () => {
@@ -231,37 +253,57 @@ export default function SettingsScreen() {
   };
 
   const removeApiKey = () => {
-    Alert.alert(
-      settings.language === 'ko' ? 'API 키 삭제' : 'Delete API Key',
-      settings.language === 'ko' 
+    const confirmDelete = () => {
+      const message = settings.language === 'ko' 
         ? '저장된 API 키를 삭제하시겠습니까? AI 기능을 사용하려면 새로운 API 키를 설정해야 합니다.'
-        : 'Are you sure you want to delete the saved API key? You will need to set a new API key to use AI features.',
-      [
-        { text: settings.language === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
-        {
-          text: settings.language === 'ko' ? '삭제' : 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiService.removeApiKey();
-              setIsApiKeySet(false);
-              Alert.alert(
-                settings.language === 'ko' ? '완료' : 'Complete', 
-                settings.language === 'ko' 
-                  ? 'API 키가 삭제되었습니다. AI 기능을 사용하려면 새로운 API 키를 설정해주세요.'
-                  : 'API key has been deleted. Please set a new API key to use AI features.'
-              );
-            } catch (error) {
-              console.error('API 키 삭제 실패:', error);
-              Alert.alert(
-                '오류', 
-                settings.language === 'ko' ? 'API 키 삭제 중 오류가 발생했습니다.' : 'An error occurred while deleting the API key.'
-              );
-            }
-          },
-        },
-      ]
-    );
+        : 'Are you sure you want to delete the saved API key? You will need to set a new API key to use AI features.';
+      
+      if (typeof window !== 'undefined' && window.confirm) {
+        if (window.confirm(message)) {
+          performDelete();
+        }
+      } else {
+        Alert.alert(
+          settings.language === 'ko' ? 'API 키 삭제' : 'Delete API Key',
+          message,
+          [
+            { text: settings.language === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
+            {
+              text: settings.language === 'ko' ? '삭제' : 'Delete',
+              style: 'destructive',
+              onPress: performDelete,
+            },
+          ]
+        );
+      }
+    };
+
+    const performDelete = async () => {
+      try {
+        await apiService.removeApiKey();
+        setIsApiKeySet(false);
+        const successMessage = settings.language === 'ko' 
+          ? 'API 키가 삭제되었습니다. AI 기능을 사용하려면 새로운 API 키를 설정해주세요.'
+          : 'API key has been deleted. Please set a new API key to use AI features.';
+        
+        if (typeof window !== 'undefined' && window.alert) {
+          window.alert(successMessage);
+        } else {
+          Alert.alert(settings.language === 'ko' ? '완료' : 'Complete', successMessage);
+        }
+      } catch (error) {
+        console.error('API 키 삭제 실패:', error);
+        const errorMessage = settings.language === 'ko' ? 'API 키 삭제 중 오류가 발생했습니다.' : 'An error occurred while deleting the API key.';
+        
+        if (typeof window !== 'undefined' && window.alert) {
+          window.alert('오류: ' + errorMessage);
+        } else {
+          Alert.alert('오류', errorMessage);
+        }
+      }
+    };
+
+    confirmDelete();
   };
 
   const resetSettings = () => {
@@ -352,43 +394,65 @@ export default function SettingsScreen() {
   };
 
   const clearAllData = () => {
-    Alert.alert(
-      settings.language === 'ko' ? '모든 데이터 삭제' : 'Delete All Data',
-      settings.language === 'ko' 
+    const confirmDelete = () => {
+      const message = settings.language === 'ko' 
         ? '정말로 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.'
-        : 'Are you sure you want to delete all data? This action cannot be undone.',
-      [
-        { text: settings.language === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
-        {
-          text: settings.language === 'ko' ? '삭제' : 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsLoading(true);
-              await dataManagerService.clearAllData();
-              
-              // 설정 초기화
-              await settingsService.resetSettings();
-              const defaultSettings = await settingsService.getSettings();
-              setSettings(defaultSettings);
-              
-              Alert.alert(
-                settings.language === 'ko' ? '완료' : 'Complete', 
-                settings.language === 'ko' ? '모든 데이터가 삭제되었습니다.' : 'All data has been deleted.'
-              );
-            } catch (error) {
-              console.error('데이터 삭제 실패:', error);
-              Alert.alert(
-                '오류', 
-                settings.language === 'ko' ? '데이터 삭제 중 오류가 발생했습니다.' : 'An error occurred while deleting data.'
-              );
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        },
-      ]
-    );
+        : 'Are you sure you want to delete all data? This action cannot be undone.';
+      
+      if (typeof window !== 'undefined' && window.confirm) {
+        if (window.confirm(message)) {
+          performDelete();
+        }
+      } else {
+        Alert.alert(
+          settings.language === 'ko' ? '모든 데이터 삭제' : 'Delete All Data',
+          message,
+          [
+            { text: settings.language === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
+            {
+              text: settings.language === 'ko' ? '삭제' : 'Delete',
+              style: 'destructive',
+              onPress: performDelete,
+            },
+          ]
+        );
+      }
+    };
+
+    const performDelete = async () => {
+      try {
+        setIsLoading(true);
+        await dataManagerService.clearAllData();
+        
+        // 설정 초기화
+        await settingsService.resetSettings();
+        const defaultSettings = await settingsService.getSettings();
+        setSettings(defaultSettings);
+        
+        const successMessage = settings.language === 'ko' ? '모든 데이터가 삭제되었습니다.' : 'All data has been deleted.';
+        
+        if (typeof window !== 'undefined' && window.alert) {
+          window.alert(successMessage);
+          // 웹 환경에서는 페이지 새로고침
+          window.location.reload();
+        } else {
+          Alert.alert(settings.language === 'ko' ? '완료' : 'Complete', successMessage);
+        }
+      } catch (error) {
+        console.error('데이터 삭제 실패:', error);
+        const errorMessage = settings.language === 'ko' ? '데이터 삭제 중 오류가 발생했습니다.' : 'An error occurred while deleting data.';
+        
+        if (typeof window !== 'undefined' && window.alert) {
+          window.alert('오류: ' + errorMessage);
+        } else {
+          Alert.alert('오류', errorMessage);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    confirmDelete();
   };
 
   return (

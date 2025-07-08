@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeProvider';
+import { settingsService } from '../services/settings';
 
 const { width, height } = Dimensions.get('window');
 
@@ -25,51 +26,126 @@ interface UserGuideProps {
 const UserGuide: React.FC<UserGuideProps> = ({ visible, onClose, isFromSettings = false }) => {
   const { theme } = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
+  const [currentLanguage, setCurrentLanguage] = useState('ko');
 
   useEffect(() => {
     if (visible) {
       setCurrentStep(0);
+      loadLanguageSettings();
     }
   }, [visible]);
 
-  const guideSteps = [
-    {
-      title: 'AI 개인 비서에 오신 것을 환영합니다! 👋',
-      description: '이 앱은 AI를 활용하여 당신의 일상을 더욱 스마트하게 만들어드립니다.',
-      icon: 'smart-toy',
-      color: '#4CAF50',
-    },
-    {
-      title: '음성으로 대화하기 🎤',
-      description: '음성 버튼을 눌러 AI와 자연스럽게 대화하세요. 질문, 요청, 대화 등 무엇이든 가능합니다.',
-      icon: 'mic',
-      color: '#2196F3',
-    },
-    {
-      title: '카메라로 분석하기 📷',
-      description: '사진을 찍거나 갤러리에서 이미지를 선택하여 AI가 분석해드립니다. 물체 인식, 텍스트 추출 등 다양한 기능을 제공합니다.',
-      icon: 'camera-alt',
-      color: '#FF9800',
-    },
-    {
-      title: '채팅으로 소통하기 💬',
-      description: '텍스트로 AI와 대화하세요. 복잡한 질문이나 긴 대화에도 최적화되어 있습니다.',
-      icon: 'chat',
-      color: '#9C27B0',
-    },
-    {
-      title: '개인화된 설정 ⚙️',
-      description: '설정에서 AI 응답 스타일, 언어, 테마 등을 커스터마이징할 수 있습니다.',
-      icon: 'settings',
-      color: '#607D8B',
-    },
-    {
-      title: '모든 준비가 완료되었습니다! 🎉',
-      description: '이제 AI 개인 비서와 함께 더욱 스마트한 일상을 시작해보세요.',
-      icon: 'check-circle',
-      color: '#4CAF50',
-    },
-  ];
+  // 언어 설정 변경 감지
+  useEffect(() => {
+    const checkLanguageSettings = async () => {
+      try {
+        const settings = await settingsService.getSettings();
+        if (settings.language !== currentLanguage) {
+          setCurrentLanguage(settings.language);
+        }
+      } catch (error) {
+        console.error('언어 설정 확인 실패:', error);
+      }
+    };
+
+    const interval = setInterval(checkLanguageSettings, 1000);
+    return () => clearInterval(interval);
+  }, [currentLanguage]);
+
+  // 언어 설정 로드
+  const loadLanguageSettings = async () => {
+    try {
+      const settings = await settingsService.getSettings();
+      setCurrentLanguage(settings.language);
+    } catch (error) {
+      console.error('언어 설정 로드 실패:', error);
+    }
+  };
+
+  // 언어별 가이드 스텝
+  const getGuideSteps = (language: string) => {
+    if (language === 'ko') {
+      return [
+        {
+          title: 'AI 개인 비서에 오신 것을 환영합니다! 👋',
+          description: '이 앱은 AI를 활용하여 당신의 일상을 더욱 스마트하게 만들어드립니다.',
+          icon: 'smart-toy',
+          color: '#4CAF50',
+        },
+        {
+          title: '음성으로 대화하기 🎤',
+          description: '음성 버튼을 눌러 AI와 자연스럽게 대화하세요. 질문, 요청, 대화 등 무엇이든 가능합니다.',
+          icon: 'mic',
+          color: '#2196F3',
+        },
+        {
+          title: '카메라로 분석하기 📷',
+          description: '사진을 찍거나 갤러리에서 이미지를 선택하여 AI가 분석해드립니다. 물체 인식, 텍스트 추출 등 다양한 기능을 제공합니다.',
+          icon: 'camera-alt',
+          color: '#FF9800',
+        },
+        {
+          title: '채팅으로 소통하기 💬',
+          description: '텍스트로 AI와 대화하세요. 복잡한 질문이나 긴 대화에도 최적화되어 있습니다.',
+          icon: 'chat',
+          color: '#9C27B0',
+        },
+        {
+          title: '개인화된 설정 ⚙️',
+          description: '설정에서 AI 응답 스타일, 언어, 테마 등을 커스터마이징할 수 있습니다.',
+          icon: 'settings',
+          color: '#607D8B',
+        },
+        {
+          title: '모든 준비가 완료되었습니다! 🎉',
+          description: '이제 AI 개인 비서와 함께 더욱 스마트한 일상을 시작해보세요.',
+          icon: 'check-circle',
+          color: '#4CAF50',
+        },
+      ];
+    } else {
+      return [
+        {
+          title: 'Welcome to AI Personal Assistant! 👋',
+          description: 'This app uses AI to make your daily life smarter and more efficient.',
+          icon: 'smart-toy',
+          color: '#4CAF50',
+        },
+        {
+          title: 'Talk with Voice 🎤',
+          description: 'Press the voice button to have natural conversations with AI. Ask questions, make requests, or just chat - anything is possible.',
+          icon: 'mic',
+          color: '#2196F3',
+        },
+        {
+          title: 'Analyze with Camera 📷',
+          description: 'Take photos or select images from your gallery for AI analysis. Object recognition, text extraction, and various other features are available.',
+          icon: 'camera-alt',
+          color: '#FF9800',
+        },
+        {
+          title: 'Chat and Communicate 💬',
+          description: 'Have text conversations with AI. Optimized for complex questions and long conversations.',
+          icon: 'chat',
+          color: '#9C27B0',
+        },
+        {
+          title: 'Personalized Settings ⚙️',
+          description: 'Customize AI response style, language, theme, and more in the settings.',
+          icon: 'settings',
+          color: '#607D8B',
+        },
+        {
+          title: 'Everything is Ready! 🎉',
+          description: 'Now start your smarter daily life with AI Personal Assistant.',
+          icon: 'check-circle',
+          color: '#4CAF50',
+        },
+      ];
+    }
+  };
+
+  const guideSteps = getGuideSteps(currentLanguage);
 
   const nextStep = () => {
     if (currentStep < guideSteps.length - 1) {
@@ -99,11 +175,16 @@ const UserGuide: React.FC<UserGuideProps> = ({ visible, onClose, isFromSettings 
       
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>
-          {isFromSettings ? '사용 가이드' : '앱 사용법'}
+          {isFromSettings 
+            ? (currentLanguage === 'ko' ? '사용 가이드' : 'User Guide')
+            : (currentLanguage === 'ko' ? '앱 사용법' : 'App Tutorial')
+          }
         </Text>
         {!isFromSettings && (
           <TouchableOpacity onPress={skipGuide} style={styles.skipButton}>
-            <Text style={[styles.skipText, { color: theme.colors.primary }]}>건너뛰기</Text>
+            <Text style={[styles.skipText, { color: theme.colors.primary }]}>
+              {currentLanguage === 'ko' ? '건너뛰기' : 'Skip'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -130,7 +211,10 @@ const UserGuide: React.FC<UserGuideProps> = ({ visible, onClose, isFromSettings 
             <View style={styles.tipContainer}>
               <MaterialIcons name="lightbulb" size={20} color="#FFD700" />
               <Text style={[styles.tipText, { color: theme.colors.onSurfaceVariant }]}>
-                팁: "오늘 날씨 어때?" 또는 "음악을 틀어줘" 같은 자연스러운 표현을 사용해보세요
+                {currentLanguage === 'ko' 
+                  ? '팁: "오늘 날씨 어때?" 또는 "음악을 틀어줘" 같은 자연스러운 표현을 사용해보세요'
+                  : 'Tip: Try using natural expressions like "How\'s the weather today?" or "Play some music"'
+                }
               </Text>
             </View>
           )}
@@ -139,7 +223,10 @@ const UserGuide: React.FC<UserGuideProps> = ({ visible, onClose, isFromSettings 
             <View style={styles.tipContainer}>
               <MaterialIcons name="lightbulb" size={20} color="#FFD700" />
               <Text style={[styles.tipText, { color: theme.colors.onSurfaceVariant }]}>
-                팁: 문서, 명함, 제품 등을 촬영하면 AI가 내용을 분석하고 요약해드립니다
+                {currentLanguage === 'ko' 
+                  ? '팁: 문서, 명함, 제품 등을 촬영하면 AI가 내용을 분석하고 요약해드립니다'
+                  : 'Tip: Take photos of documents, business cards, or products and AI will analyze and summarize the content'
+                }
               </Text>
             </View>
           )}
@@ -175,7 +262,10 @@ const UserGuide: React.FC<UserGuideProps> = ({ visible, onClose, isFromSettings 
             style={[styles.nextButton, { backgroundColor: theme.colors.primary }]}
           >
             <Text style={styles.nextButtonText}>
-              {currentStep === guideSteps.length - 1 ? '시작하기' : '다음'}
+              {currentStep === guideSteps.length - 1 
+                ? (currentLanguage === 'ko' ? '시작하기' : 'Get Started')
+                : (currentLanguage === 'ko' ? '다음' : 'Next')
+              }
             </Text>
             <MaterialIcons 
               name={currentStep === guideSteps.length - 1 ? 'check' : 'arrow-forward'} 

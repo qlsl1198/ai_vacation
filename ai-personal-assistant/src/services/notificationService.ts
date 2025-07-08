@@ -2,22 +2,31 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { settingsService } from './settings';
 
-// 알림 핸들러 설정
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// 알림 핸들러 설정 (웹 환경에서는 제한적)
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 class NotificationService {
   private isInitialized = false;
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
+
+    // 웹 환경에서는 알림 기능 제한
+    if (Platform.OS === 'web') {
+      console.log('웹 환경에서는 알림 기능이 제한됩니다.');
+      this.isInitialized = true;
+      return;
+    }
 
     try {
       // 권한 요청
@@ -55,6 +64,21 @@ class NotificationService {
     body: string,
     trigger?: Notifications.NotificationTriggerInput
   ): Promise<string> {
+    // 웹 환경에서는 브라우저 알림 사용
+    if (Platform.OS === 'web') {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body });
+        return 'web-notification';
+      } else if ('Notification' in window && Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          new Notification(title, { body });
+          return 'web-notification';
+        }
+      }
+      throw new Error('웹 환경에서 알림 권한이 필요합니다.');
+    }
+
     try {
       // 알림 설정 확인
       const notificationsEnabled = await settingsService.getSetting('notifications');
@@ -87,6 +111,10 @@ class NotificationService {
     body: string,
     date: Date
   ): Promise<string> {
+    // 웹 환경에서는 즉시 알림으로 처리
+    if (Platform.OS === 'web') {
+      return this.sendImmediateNotification(title, body);
+    }
     return this.scheduleNotification(title, body, {
       date,
     } as any);
@@ -97,6 +125,10 @@ class NotificationService {
     body: string,
     interval: number // 초 단위
   ): Promise<string> {
+    // 웹 환경에서는 즉시 알림으로 처리
+    if (Platform.OS === 'web') {
+      return this.sendImmediateNotification(title, body);
+    }
     return this.scheduleNotification(title, body, {
       seconds: interval,
       repeats: true,
@@ -104,6 +136,12 @@ class NotificationService {
   }
 
   async cancelNotification(notificationId: string): Promise<void> {
+    // 웹 환경에서는 취소 불가
+    if (Platform.OS === 'web') {
+      console.log('웹 환경에서는 알림 취소가 지원되지 않습니다.');
+      return;
+    }
+
     try {
       await Notifications.cancelScheduledNotificationAsync(notificationId);
     } catch (error) {
@@ -113,6 +151,12 @@ class NotificationService {
   }
 
   async cancelAllNotifications(): Promise<void> {
+    // 웹 환경에서는 취소 불가
+    if (Platform.OS === 'web') {
+      console.log('웹 환경에서는 알림 취소가 지원되지 않습니다.');
+      return;
+    }
+
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
     } catch (error) {
@@ -122,6 +166,11 @@ class NotificationService {
   }
 
   async getScheduledNotifications(): Promise<Notifications.NotificationRequest[]> {
+    // 웹 환경에서는 빈 배열 반환
+    if (Platform.OS === 'web') {
+      return [];
+    }
+
     try {
       return await Notifications.getAllScheduledNotificationsAsync();
     } catch (error) {
@@ -131,6 +180,21 @@ class NotificationService {
   }
 
   async getNotificationPermissions(): Promise<Notifications.PermissionStatus> {
+    // 웹 환경에서는 브라우저 알림 권한 확인
+    if (Platform.OS === 'web') {
+      if ('Notification' in window) {
+        switch (Notification.permission) {
+          case 'granted':
+            return Notifications.PermissionStatus.GRANTED;
+          case 'denied':
+            return Notifications.PermissionStatus.DENIED;
+          default:
+            return Notifications.PermissionStatus.UNDETERMINED;
+        }
+      }
+      return Notifications.PermissionStatus.DENIED;
+    }
+
     try {
       const { status } = await Notifications.getPermissionsAsync();
       return status;

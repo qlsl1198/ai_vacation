@@ -48,11 +48,6 @@
       "expo-file-system",
       "expo-document-picker",
       "expo-sharing"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "your-project-id"
-      }
-    }
+    ]
   }
-}
+} 
