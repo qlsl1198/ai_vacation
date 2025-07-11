@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.aipersonalassistant.app"
+      "bundleIdentifier": "com.anonymous.aipersonalassistant"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,7 +25,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.aipersonalassistant.app",
+      "package": "com.anonymous.aipersonalassistant",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
@@ -39,20 +39,6 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "webpack"
-    },
-    "plugins": [
-      "expo-camera",
-      "expo-image-picker",
-      "expo-av",
-      "expo-notifications",
-      "expo-file-system",
-      "expo-document-picker",
-      "expo-sharing"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "your-project-id"
-      }
     }
   }
 }

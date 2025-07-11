@@ -112,7 +112,8 @@ export class ApiService {
   async sendTextMessage(
     message: string,
     systemPrompt?: string,
-    model: string = DEFAULT_MODEL
+    model: string = DEFAULT_MODEL,
+    conversationContext?: { role: 'user' | 'assistant'; content: string }[]
   ): Promise<ApiResponse> {
     const messages: ChatMessage[] = [];
     
@@ -121,6 +122,16 @@ export class ApiService {
         role: 'system',
         content: systemPrompt
       });
+    }
+    
+    // 이전 대화 컨텍스트 추가
+    if (conversationContext && conversationContext.length > 0) {
+      // 최근 10개의 메시지만 포함 (토큰 제한 고려)
+      const recentContext = conversationContext.slice(-10);
+      messages.push(...recentContext.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      })));
     }
     
     messages.push({

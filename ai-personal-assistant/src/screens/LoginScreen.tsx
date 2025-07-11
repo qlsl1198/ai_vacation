@@ -5,6 +5,7 @@ import {
   ScrollView,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import {
   Card,
@@ -128,7 +129,13 @@ export default function LoginScreen() {
                 }
               ]}
               textColor="#4285F4"
-              icon="logo-google"
+              icon={() => (
+                <Image
+                  source={require('../../assets/google_logo.png')}
+                  style={{ width: 20, height: 20, marginRight: 8 }}
+                  resizeMode="contain"
+                />
+              )}
               loading={isLoading}
               disabled={isLoading}
             >
@@ -148,7 +155,13 @@ export default function LoginScreen() {
                 }
               ]}
               textColor="#000000"
-              icon="logo-google"
+              icon={() => (
+                <Image
+                  source={require('../../assets/kakao_logo.png')}
+                  style={{ width: 20, height: 20, marginRight: 8 }}
+                  resizeMode="contain"
+                />
+              )}
               loading={isLoading}
               disabled={isLoading}
             >

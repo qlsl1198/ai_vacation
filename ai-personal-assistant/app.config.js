@@ -32,8 +32,16 @@ export default {
     scheme: "ai-personal-assistant",
     extra: {
       eas: {
-        projectId: "your-project-id"
+        projectId: "ce671093-4733-4813-86f1-b827ac4bb199"
       }
-    }
+    },
+    plugins: [
+      "expo-camera",
+      "expo-image-picker",
+      "expo-av",
+      "expo-notifications",
+      "expo-file-system",
+      "expo-document-picker"
+    ]
   }
 }; 
